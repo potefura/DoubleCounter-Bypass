@@ -25,7 +25,7 @@ This script is designed to bypass the Double Counter verification system.
 4. Run the script:
 
     ```bash
-    python3 DCBypass.py
+    python3 bypass.py
     ```
 
 5. Follow the prompts to input the necessary information.
@@ -36,3 +36,4 @@ This script is designed to bypass the Double Counter verification system.
 
 ## Disclaimer
 This script is provided for educational purposes only. Use it at your own risk. The authors are not responsible for any misuse or damage caused by this script.
+
