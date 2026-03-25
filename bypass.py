@@ -81,6 +81,14 @@ def timestamp() -> str:
     return f"{Fore.LIGHTBLACK_EX}[{datetime.now().strftime('%H:%M:%S')}]{Style.RESET_ALL}"
 
 
+def clear() -> None:
+    os.system("cls" if os.name == "nt" else "clear")
+
+
+def pause() -> None:
+    input(f"\n  {Fore.LIGHTBLACK_EX}Press Enter to return to the menu...{Style.RESET_ALL}")
+
+
 def banner() -> None:
     print(f"""
 {Fore.CYAN}╔════════════════════════════════════════╗
@@ -265,8 +273,8 @@ def fetch_proxies() -> None:
 {Fore.LIGHTBLACK_EX}  ─────────────────────────────────────────────────────────────────{Style.RESET_ALL}
 """)
 
-    confirm = input(f"  {Fore.WHITE}Continue anyway? {Fore.CYAN}[y/n]{Fore.WHITE} » {Style.RESET_ALL}").strip().lower()
-    if confirm != "y":
+    confirm = input(f"  {Fore.WHITE}Continue anyway? {Fore.CYAN}[Y/n]{Fore.WHITE} » {Style.RESET_ALL}").strip().lower()
+    if confirm not in ("y", ""):
         print(f"{timestamp()} {Fore.CYAN}Cancelled.\n")
         return
 
@@ -305,6 +313,7 @@ def fetch_proxies() -> None:
 
     if not collected:
         print(f"{timestamp()} {Fore.RED}No proxies collected. Check your connection and try again.")
+        pause()
         return
 
     # 3 — deduplicate
@@ -317,6 +326,7 @@ def fetch_proxies() -> None:
 
     if not live:
         print(f"{timestamp()} {Fore.RED}No live proxies after validation. Try again later.")
+        pause()
         return
 
     # 5 — save
@@ -327,6 +337,7 @@ def fetch_proxies() -> None:
         f"{Fore.CYAN}{len(live):,}{Fore.GREEN} saved, "
         f"{Fore.CYAN}{len(raw_list) - len(live):,}{Fore.GREEN} discarded.\n"
     )
+    pause()
 
 # ---------------------------------------------------------------------------
 # Check current proxies
@@ -338,6 +349,7 @@ def check_proxies() -> None:
 
     if not os.path.exists(PROXY_FILE):
         print(f"{timestamp()} {Fore.RED}  {PROXY_FILE} not found.")
+        pause()
         return
 
     with open(PROXY_FILE, "r") as fh:
@@ -345,6 +357,7 @@ def check_proxies() -> None:
 
     if not lines:
         print(f"{timestamp()} ⚠️  {Fore.YELLOW}  {PROXY_FILE} is empty — nothing to check.")
+        pause()
         return
 
     label = "proxy" if len(lines) == 1 else "proxies"
@@ -355,8 +368,9 @@ def check_proxies() -> None:
     if not live:
         print(
             f"{timestamp()} {Fore.RED}  No live proxies found. "
-            f"Fetch fresh ones with option {Fore.CYAN}[1]{Fore.RED}."
+            f"Fetch fresh ones with option {Fore.CYAN}[3]{Fore.RED}."
         )
+        pause()
         return
 
     write_proxies(PROXY_FILE, live)
@@ -365,6 +379,7 @@ def check_proxies() -> None:
         f"{Fore.CYAN}{len(live):,}{Fore.GREEN} kept, "
         f"{Fore.CYAN}{len(lines) - len(live):,}{Fore.GREEN} removed.\n"
     )
+    pause()
 
 # ---------------------------------------------------------------------------
 # Bypass worker
@@ -529,10 +544,12 @@ def run_bypass() -> None:
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    banner()
-
     while True:
+        clear()
+        banner()
         choice = menu()
+
+        clear()
 
         if choice == "1":
             run_bypass()
@@ -545,5 +562,4 @@ if __name__ == "__main__":
             fetch_proxies()
 
         elif choice == "4":
-            print(f"{timestamp()} {Fore.CYAN}Bye.\n")
             break
