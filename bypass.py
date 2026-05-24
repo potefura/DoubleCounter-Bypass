@@ -114,7 +114,7 @@ def menu() -> str:
 # ---------------------------------------------------------------------------
 
 def _strip_scheme(raw: str) -> str:
-    """Remove any protocol prefix from a proxy string and return bare ip:port."""
+    """Remove any protocol prefix from a proxy string and return bare proxy."""
     for scheme in ("http://", "https://", "socks5://", "socks4://"):
         if raw.startswith(scheme):
             return raw[len(scheme):]
@@ -122,18 +122,45 @@ def _strip_scheme(raw: str) -> str:
 
 
 def is_valid_proxy(raw: str) -> bool:
-    """Return True if raw is a well-formed ip:port string."""
+    """Return True if raw is a well-formed proxy string (with or without auth)."""
     raw = _strip_scheme(raw.strip())
     if not raw or raw.startswith("#"):
         return False
+    
+    # username:password@host:port 形式をチェック
+    if "@" in raw:
+        try:
+            auth_part, host_port = raw.rsplit("@", 1)
+            if ":" not in auth_part:
+                return False
+        except ValueError:
+            return False
+    else:
+        host_port = raw
+    
+    # host:port 部分を検証
     try:
-        host, port_str = raw.rsplit(":", 1)
+        host, port_str = host_port.rsplit(":", 1)
     except ValueError:
         return False
+    
     if not port_str.isdigit() or not (1 <= int(port_str) <= 65535):
         return False
+    
+    # ホスト部分の検証: IPアドレスまたはドメイン名
+    # IPアドレスチェック
     octets = host.split(".")
-    return len(octets) == 4 and all(o.isdigit() and 0 <= int(o) <= 255 for o in octets)
+    if len(octets) == 4 and all(o.isdigit() and 0 <= int(o) <= 255 for o in octets):
+        return True  # 有効なIPアドレス
+    
+    # ドメイン名チェック（簡易版）
+    # ドメイン名は英数字、ハイフン、ドットを含む
+    if len(host) > 0 and all(c.isalnum() or c in ".-" for c in host):
+        # 最低限ドットが1つ以上ある（例: example.com）
+        if "." in host and not host.startswith(".") and not host.endswith("."):
+            return True
+    
+    return False
 
 
 def load_proxies(filename: str) -> list[dict]:
@@ -150,7 +177,9 @@ def load_proxies(filename: str) -> list[dict]:
             if not raw:
                 continue
             if is_valid_proxy(raw):
-                valid.append({"https": f"http://{raw}"})
+                # スキームを削除した状態で保存
+                clean = _strip_scheme(raw)
+                valid.append({"https": f"http://{clean}"})
             else:
                 skipped += 1
 
@@ -158,7 +187,7 @@ def load_proxies(filename: str) -> list[dict]:
         label = "proxy" if skipped == 1 else "proxies"
         print(
             f"{timestamp()} {Fore.YELLOW}Removed {Fore.CYAN}{skipped}{Fore.YELLOW} "
-            f"invalid {label} from {filename} — expected format: ip:port"
+            f"invalid {label} from {filename} — expected format: ip:port or username:password@ip:port"
         )
         with open(filename, "w") as fh:
             for entry in valid:
@@ -518,7 +547,7 @@ def run_bypass() -> None:
     if not proxies:
         print(
             f"{timestamp()} ⚠️  {Fore.YELLOW}No valid proxies found — "
-            f"use option {Fore.CYAN}[1]{Fore.YELLOW} to fetch some."
+            f"use option {Fore.CYAN}[3]{Fore.YELLOW} to fetch some."
         )
         return
 
